@@ -4,6 +4,8 @@ import { Server } from 'node:http';
 import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
+import { z } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/zod/lib/index.mjs';
+import mongoose from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/mongoose/index.js';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import destr from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/destr/dist/index.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, joinRelativeURL } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/ufo/dist/index.mjs';
@@ -30,7 +32,6 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { stringify, uneval } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/devalue/index.js';
 import { captureRawStackTrace, parseRawStackTrace } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/errx/dist/index.js';
 import { colors } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/consola/dist/utils.mjs';
-import mongoose from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/mongoose/index.js';
 import { DeprecationsPlugin, PromisesPlugin, TemplateParamsPlugin, AliasSortingPlugin } from 'file:///Users/rohailramesh/Documents/GitHub/ro-ro-reviews/node_modules/unhead/dist/plugins.mjs';
 
 const serverAssets = [{"baseName":"server","dir":"/Users/rohailramesh/Documents/GitHub/ro-ro-reviews/server/assets"}];
@@ -1023,7 +1024,7 @@ const _lgIc8mkLRvikaojQpH7UGfeK0ZxkWahZykjB0yMD7s = (function(nitro) {
 
 const rootDir = "/Users/rohailramesh/Documents/GitHub/ro-ro-reviews";
 
-const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"}],"link":[],"style":[],"script":[],"noscript":[]};
+const appHead = {"meta":[{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1"}],"link":[{"rel":"icon","type":"image/x-icon","href":"/favicon.ico"}],"style":[],"script":[],"noscript":[],"title":"Ro-Ro-Reviews"};
 
 const appRootTag = "div";
 
@@ -1197,6 +1198,65 @@ function publicAssetsURL(...path) {
   return path.length ? joinRelativeURL(publicBase, ...path) : publicBase;
 }
 
+const Book = defineMongooseModel("Book", {
+  title: {
+    type: String,
+    required: true
+  },
+  author: {
+    type: String,
+    required: true
+  },
+  //genre is an array of strings
+  genre: {
+    type: [String],
+    required: true
+  },
+  fictionType: {
+    type: String,
+    required: true
+  },
+  read: {
+    type: Boolean,
+    required: true
+  },
+  reviewed: {
+    type: Boolean,
+    required: true
+  },
+  reviewText: {
+    type: String,
+    required: false
+  },
+  literatureOrigin: {
+    type: String,
+    required: true
+  },
+  coverUrl: {
+    type: String,
+    required: true
+  }
+}, {
+  timestamps: true
+});
+
+const BooksWishList = defineMongooseModel("BooksWishList", {
+  title: {
+    type: String,
+    required: true
+  },
+  author: {
+    type: String,
+    required: true
+  },
+  coverUrl: {
+    type: String,
+    required: true
+  }
+}, {
+  timestamps: true
+});
+
 async function defineMongooseConnection({ uri, options } = {}) {
   const config = useRuntimeConfig().mongoose;
   const mongooseUri = uri || config.uri;
@@ -1207,6 +1267,22 @@ async function defineMongooseConnection({ uri, options } = {}) {
   } catch (err) {
     consola$1.error(colors.red(`Error connecting to MongoDB: ${err}`));
   }
+}
+
+function defineMongooseModel(nameOrOptions, schema, options, hooks) {
+  let name;
+  if (typeof nameOrOptions === "string") {
+    name = nameOrOptions;
+  } else {
+    name = nameOrOptions.name;
+    schema = nameOrOptions.schema;
+    options = nameOrOptions.options;
+    hooks = nameOrOptions.hooks;
+  }
+  const newSchema = new mongoose.Schema(schema, options);
+  if (hooks)
+    hooks(newSchema);
+  return mongoose.model(name, newSchema);
 }
 
 function defineNitroPlugin(def) {
@@ -1222,9 +1298,13 @@ _sZorXr9K1ozpuC4eGtwYnLU6K12kte0MhN1ygw5JA,
 _BGpuDNx0lMkXWraSJ0K6gHbUSgHuOsIOfYwWbT9LY0
 ];
 
+const _lazy_7kiR_7 = () => Promise.resolve().then(function () { return bookToBuy$1; });
+const _lazy_U1sada = () => Promise.resolve().then(function () { return books$1; });
 const _lazy_UAIypj = () => Promise.resolve().then(function () { return renderer$1; });
 
 const handlers = [
+  { route: '/api/book-to-buy', handler: _lazy_7kiR_7, lazy: true, middleware: false, method: undefined },
+  { route: '/api/books', handler: _lazy_U1sada, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_error', handler: _lazy_UAIypj, lazy: true, middleware: false, method: undefined },
   { route: '/**', handler: _lazy_UAIypj, lazy: true, middleware: false, method: undefined }
 ];
@@ -1460,6 +1540,246 @@ const template$1 = (messages) => {
 const errorDev = /*#__PURE__*/Object.freeze({
   __proto__: null,
   template: template$1
+});
+
+const booksWishListSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  author: z.string().min(1, "Author is required"),
+  coverUrl: z.string().url("Invalid URL format for cover image").optional()
+});
+const bookWishListService = {
+  createBook: async (data) => {
+    try {
+      const validatedData = booksWishListSchema.parse(data);
+      const apiUrl = `https://bookcover.longitood.com/bookcover?book_title=${encodeURIComponent(validatedData.title)}&author_name=${encodeURIComponent(validatedData.author)}`;
+      const response = await fetch(apiUrl);
+      const apiResult = await response.json();
+      if (apiResult.url) {
+        validatedData.coverUrl = apiResult.url;
+      } else {
+        console.warn(`Cover image not found for book: ${validatedData.title} by ${validatedData.author}`);
+      }
+      const book = new BooksWishList(validatedData);
+      await book.save();
+      console.log("Book created successfully:", book);
+      return { success: true, data: book };
+    } catch (error) {
+      console.error("Error creating book:", error);
+      return { success: false, error: error instanceof z.ZodError ? error.errors : error.message };
+    }
+  },
+  getAllBooks: async () => {
+    try {
+      const books = await BooksWishList.find();
+      console.log("Books retrieved successfully:", books);
+      return { success: true, data: books };
+    } catch (error) {
+      console.error("Error retrieving books:", error);
+      return { success: false, error: error.message };
+    }
+  }
+};
+
+const bookWishListController = {
+  createBook: async (event) => {
+    try {
+      const body = await readBody(event);
+      const result = await bookWishListService.createBook(body);
+      if (result.success) {
+        return { success: true, data: result.data };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("Error in createBook controller:", error);
+      return { success: false, error: error.message || "An unexpected error occurred" };
+    }
+  },
+  getAllBooks: async () => {
+    try {
+      const result = await bookWishListService.getAllBooks();
+      if (result.success) {
+        return { success: true, data: result.data };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("Error in getAllBooks controller:", error);
+      return { success: false, error: error.message || "An unexpected error occurred" };
+    }
+  }
+};
+
+const bookToBuy = defineEventHandler(async (event) => {
+  const method = event._method;
+  if (!method) {
+    return {
+      success: false,
+      error: "HTTP method is missing."
+    };
+  }
+  if (method === "POST") {
+    const body = await readBody(event);
+    if (!body.title || !body.author) {
+      return {
+        success: false,
+        error: "Title and author are required fields."
+      };
+    }
+    return bookWishListController.createBook(event);
+  } else if (method === "GET") {
+    return bookWishListController.getAllBooks();
+  } else {
+    return {
+      success: false,
+      error: `Method ${method} is not supported.`
+    };
+  }
+});
+
+const bookToBuy$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  default: bookToBuy
+});
+
+const bookSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  author: z.string().min(1, "Author is required"),
+  genre: z.array(z.string()).nonempty("At least one genre is required"),
+  read: z.boolean().default(false),
+  fictionType: z.enum(["fiction", "non-fiction"], {
+    errorMap: () => ({ message: "Fiction type must be either 'fiction' or 'non-fiction'" })
+  }),
+  literatureOrigin: z.string().min(1, "Literature origin is required"),
+  coverUrl: z.string().url("Invalid URL format for cover image").optional(),
+  reviewed: z.boolean().default(false),
+  reviewText: z.string().min(1, "Review text is required")
+});
+const bookService = {
+  createBook: async (data) => {
+    try {
+      const validatedData = bookSchema.parse(data);
+      const apiUrl = `https://bookcover.longitood.com/bookcover?book_title=${encodeURIComponent(validatedData.title)}&author_name=${encodeURIComponent(validatedData.author)}`;
+      const response = await fetch(apiUrl);
+      const apiResult = await response.json();
+      if (apiResult.url) {
+        validatedData.coverUrl = apiResult.url;
+      } else {
+        console.warn(`Cover image not found for book: ${validatedData.title} by ${validatedData.author}`);
+      }
+      const book = new Book(validatedData);
+      await book.save();
+      console.log("Book created successfully:", book);
+      return { success: true, data: book };
+    } catch (error) {
+      console.error("Error creating book:", error);
+      return { success: false, error: error instanceof z.ZodError ? error.errors : error.message };
+    }
+  },
+  getAllBooks: async () => {
+    try {
+      const books = await Book.find();
+      console.log("Books retrieved successfully:", books);
+      return { success: true, data: books };
+    } catch (error) {
+      console.error("Error retrieving books:", error);
+      return { success: false, error: error.message };
+    }
+  },
+  getBookById: async (id) => {
+    try {
+      const book = await Book.findById(id);
+      if (!book) {
+        return { success: false, error: "Book not found" };
+      }
+      console.log("Book retrieved successfully:", book);
+      return { success: true, data: book };
+    } catch (error) {
+      console.error("Error retrieving book:", error);
+      return { success: false, error: error.message };
+    }
+  }
+};
+
+const bookController = {
+  createBook: async (event) => {
+    try {
+      const body = await readBody(event);
+      const result = await bookService.createBook(body);
+      if (result.success) {
+        return { success: true, data: result.data };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("Error in createBook controller:", error);
+      return { success: false, error: error.message || "An unexpected error occurred" };
+    }
+  },
+  getAllBooks: async () => {
+    try {
+      const result = await bookService.getAllBooks();
+      if (result.success) {
+        return { success: true, data: result.data };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("Error in getAllBooks controller:", error);
+      return { success: false, error: error.message || "An unexpected error occurred" };
+    }
+  },
+  getBookById: async (id) => {
+    try {
+      const result = await bookService.getBookById(id);
+      if (result.success) {
+        return { success: true, data: result.data };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("Error in getBookById controller:", error);
+      return { success: false, error: error.message || "An unexpected error occurred" };
+    }
+  }
+};
+
+const books = defineEventHandler(async (event) => {
+  const method = event._method;
+  if (!method) {
+    return {
+      success: false,
+      error: "HTTP method is missing."
+    };
+  }
+  if (method === "POST") {
+    const body = await readBody(event);
+    if (!body.title || !body.author) {
+      return {
+        success: false,
+        error: "Title and author are required fields."
+      };
+    }
+    return bookController.createBook(event);
+  } else if (method === "GET") {
+    const query = getQuery$1(event);
+    const id = query.id;
+    if (id) {
+      return bookController.getBookById(id);
+    } else {
+      return bookController.getAllBooks();
+    }
+  } else {
+    return {
+      success: false,
+      error: `Method ${method} is not supported.`
+    };
+  }
+});
+
+const books$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  default: books
 });
 
 const VueResolver = (_, value) => {
